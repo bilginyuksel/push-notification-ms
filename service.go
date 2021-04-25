@@ -5,16 +5,15 @@ import (
 	"fmt"
 )
 
-func pushNotificationToClient(clientID string, notification PushNotificationReq) error {
+func pushNotificationToClient(clientID string, notification NotificationRequest) {
 	p := GetProducer()
 	p.SendMessage(topic, fmt.Sprintf("cid:%s,%v", clientID, notification))
-	return nil
 }
 
-func pushNotificationToTopic(topic string, notification PushNotificationReq) error {
+func pushNotificationToTopic(topic string, notification NotificationRequest) error {
 	return errors.New("error")
 }
 
-func pushNotificationToApp(topic string, notification PushNotificationReq) error {
+func pushNotificationToApp(topic string, notification NotificationRequest) error {
 	return errors.New("error")
 }
