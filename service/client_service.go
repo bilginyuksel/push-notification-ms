@@ -1,29 +1,32 @@
-package main
+package service
 
 import (
 	"errors"
 	"log"
 	"time"
 
+	"github.com/bilginyuksel/push-notification/entity"
+	"github.com/bilginyuksel/push-notification/repository"
+	"github.com/bilginyuksel/push-notification/request"
 	"github.com/hashicorp/go-uuid"
 )
 
 type clientServiceImpl struct {
-	clientRepo ClientRepository
+	clientRepo repository.ClientRepository
 	appService APPService
 }
 
 type ClientService interface {
-	CreateNewClient(req CreateClientRequest) (*Client, error)
+	CreateNewClient(req request.CreateClientRequest) (*entity.Client, error)
 }
 
-func NewClientService(repo ClientRepository, appService APPService) ClientService {
+func NewClientService(repo repository.ClientRepository, appService APPService) ClientService {
 	return &clientServiceImpl{
 		clientRepo: repo,
 		appService: appService}
 }
 
-func (self *clientServiceImpl) CreateNewClient(req CreateClientRequest) (*Client, error) {
+func (self *clientServiceImpl) CreateNewClient(req request.CreateClientRequest) (*entity.Client, error) {
 
 	if isExist := self.appService.IsExist(req.APPID); !isExist {
 		log.Println("app could not found")
@@ -32,7 +35,7 @@ func (self *clientServiceImpl) CreateNewClient(req CreateClientRequest) (*Client
 
 	uuid, _ := uuid.GenerateUUID()
 
-	client := Client{
+	client := entity.Client{
 		RecordID:             uuid,
 		APPID:                req.APPID,
 		ClientID:             req.ClientID,
@@ -41,7 +44,7 @@ func (self *clientServiceImpl) CreateNewClient(req CreateClientRequest) (*Client
 		Status:               "Approving",
 	}
 
-	if err := self.clientRepo.save(client); err != nil {
+	if err := self.clientRepo.Save(client); err != nil {
 		log.Printf("an error occured while saving client, err: %v", err)
 		return nil, err
 	}

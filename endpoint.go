@@ -8,6 +8,9 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/bilginyuksel/push-notification/repository"
+	"github.com/bilginyuksel/push-notification/request"
+	"github.com/bilginyuksel/push-notification/service"
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -17,7 +20,7 @@ const (
 )
 
 type Environment struct {
-	appService APPService
+	appService service.APPService
 }
 
 var env *Environment = nil
@@ -29,10 +32,10 @@ func initDB() {
 		panic(err.Error())
 	}
 
-	appRepo := NewAPPRepository(db)
+	appRepo := repository.NewAPPRepository(db)
 
 	env = &Environment{
-		appService: NewAPPService(appRepo),
+		appService: service.NewAPPService(appRepo),
 	}
 
 	log.Printf("db connection established")
@@ -59,6 +62,8 @@ func pushNotificationClient(w http.ResponseWriter, r *http.Request) {
 	params := r.URL.Query()
 	clientId := params.Get("clientId")
 
+	log.Println(clientId)
+
 	bytes, err := ioutil.ReadAll(r.Body)
 
 	if err != nil {
@@ -68,7 +73,7 @@ func pushNotificationClient(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	notificationReq := &NotificationRequest{}
+	notificationReq := &request.NotificationRequest{}
 	err = json.Unmarshal(bytes, notificationReq)
 
 	if err != nil {
@@ -78,7 +83,8 @@ func pushNotificationClient(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	go pushNotificationToClient(clientId, *notificationReq)
+	// TODO: send notification via messaging queue
+	// go pushNotificationToClient(clientId, *notificationReq)
 }
 
 func createNewApplication(w http.ResponseWriter, r *http.Request) {
@@ -91,7 +97,7 @@ func createNewApplication(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	createAppReq := &CreateAppRequest{}
+	createAppReq := &request.CreateAppRequest{}
 	if err = json.Unmarshal(bytes, createAppReq); err != nil {
 		log.Printf("illegal argument exception, request body is incorrect, err: %v", err)
 		w.WriteHeader(http.StatusBadRequest)

@@ -1,4 +1,4 @@
-package main
+package request
 
 type NotificationRequest struct {
 	Title   string            `json:"title"`

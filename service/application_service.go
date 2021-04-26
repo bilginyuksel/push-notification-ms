@@ -1,38 +1,41 @@
-package main
+package service
 
 import (
 	"log"
 	"time"
 
 	"github.com/hashicorp/go-uuid"
+
+	"github.com/bilginyuksel/push-notification/entity"
+	"github.com/bilginyuksel/push-notification/repository"
+	"github.com/bilginyuksel/push-notification/request"
 )
 
 type appServiceImpl struct {
-	repo APPRepository
+	repo repository.APPRepository
 }
 
 type APPService interface {
-	CreateNewAPP(req CreateAppRequest) (*Application, error)
+	CreateNewAPP(req request.CreateAppRequest) (*entity.Application, error)
 	IsExist(appID string) bool
 }
 
-func NewAPPService(appRepo APPRepository) APPService {
+func NewAPPService(appRepo repository.APPRepository) APPService {
 	return &appServiceImpl{
 		repo: appRepo,
 	}
 }
 
-func (service *appServiceImpl) CreateNewAPP(req CreateAppRequest) (*Application, error) {
-	// generate recordID
-
+func (service *appServiceImpl) CreateNewAPP(req request.CreateAppRequest) (*entity.Application, error) {
 	recordID := ""
+
 	if uuid, err := uuid.GenerateUUID(); err != nil {
 		log.Printf("uuid generation failed, err: %v", err)
 	} else {
 		recordID = uuid
 	}
 
-	app := Application{
+	app := entity.Application{
 		RecordID:    recordID,
 		Name:        req.Name,
 		Description: req.Description,
@@ -41,7 +44,7 @@ func (service *appServiceImpl) CreateNewAPP(req CreateAppRequest) (*Application,
 		CancelTime:  nil,
 	}
 
-	if err := service.repo.save(app); err != nil {
+	if err := service.repo.Save(app); err != nil {
 		log.Printf("application couldn't created, err: %v", err)
 		return nil, err
 	}
@@ -50,6 +53,6 @@ func (service *appServiceImpl) CreateNewAPP(req CreateAppRequest) (*Application,
 	return &app, nil
 }
 
-func (service *appServiceImpl) IsExist(appId string) bool {
-	return false
+func (service *appServiceImpl) IsExist(appID string) bool {
+	return service.repo.IsExist(appID)
 }
