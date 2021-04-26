@@ -35,3 +35,9 @@ type Client struct {
 
 	LastStatusChangeTime time.Time
 }
+
+type Topic struct {
+}
+
+type Notification struct {
+}

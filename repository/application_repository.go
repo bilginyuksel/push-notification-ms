@@ -41,7 +41,7 @@ func (repo *appRepoImpl) IsExist(appID string) bool {
 	query := "SELECT COUNT(*) FROM C_APP WHERE RECORD_ID=?"
 
 	if err := repo.db.QueryRow(query, appID).Scan(&count); err != nil {
-		log.Printf("sql exception occurred, err: ", err)
+		log.Printf("sql exception occurred, err: %v", err)
 	}
 
 	return count != 0
