@@ -1,80 +1,38 @@
 package service
 
 import (
+	"encoding/json"
 	"log"
 
-	"github.com/Shopify/sarama"
 	"github.com/bilginyuksel/push-notification/entity"
+	"github.com/bilginyuksel/push-notification/queue"
 )
 
 type NotificationService interface {
-	Push(notification entity.Notification)
+	// PushToTopic(topic string, notification entity.Notification)
+	// PushToApp(appID string, notification entity.Notification)
+	Push(notification entity.Notification) error
 }
 
 type notificationServiceImpl struct {
-	producer Producer
+	producer queue.Producer
 }
 
 func NewNotificationService() NotificationService {
 	brokers := []string{"localhost:9092"}
 
 	return &notificationServiceImpl{
-		producer: newSaramaProducer(brokers),
+		producer: queue.NewProducer(brokers),
 	}
 }
 
-func (service *notificationServiceImpl) Push(notification entity.Notification) {
-}
-
-type Producer interface {
-	Send(topic, message string)
-	Ping()
-	Close() error
-}
-
-type producerImpl struct {
-	sp *sarama.SyncProducer
-}
-
-func newSaramaProducer(brokers []string) Producer {
-
-	config := sarama.NewConfig()
-	config.Producer.Partitioner = sarama.NewRandomPartitioner
-	config.Producer.RequiredAcks = sarama.WaitForAll
-	config.Producer.Return.Successes = true
-
-	saramaProducer, err := sarama.NewSyncProducer(brokers, config)
+func (service *notificationServiceImpl) Push(notification entity.Notification) error {
+	bytes, err := json.Marshal(notification)
 
 	if err != nil {
-		log.Panicf("producer couldn't created, err: %v", err)
-		return nil
-	}
-
-	return &producerImpl{sp: &saramaProducer}
-}
-
-func (p *producerImpl) Send(topic, message string) {
-	if partition, offset, err := (*p.sp).SendMessage(&sarama.ProducerMessage{
-		Topic:     topic,
-		Partition: -1,
-		Value:     sarama.StringEncoder(message),
-	}); err != nil {
-		log.Printf("error occurred when sending message, err: %v", err)
-	} else {
-		log.Printf("message sent, partition: %d, offset: %d", partition, offset)
-	}
-}
-
-func (p *producerImpl) Close() error {
-	if err := (*p.sp).Close(); err != nil {
-		log.Printf("error occurred while closing producer connection, err: %v", err)
+		log.Printf("an error occurred while marshaling the notification, err: %v", err)
 		return err
 	}
 
-	log.Println("producer closed successfully")
-	return nil
-}
-
-func (p *producerImpl) Ping() {
-
+	return service.producer.Send(string(bytes))
 }
