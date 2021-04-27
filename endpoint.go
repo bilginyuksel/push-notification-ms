@@ -20,7 +20,10 @@ const (
 )
 
 type Environment struct {
-	appService service.APPService
+	appService          service.APPService
+	topicService        service.TopicService
+	clientService       service.ClientService
+	notificationService service.NotificationService
 }
 
 var env *Environment = nil
@@ -33,9 +36,19 @@ func initDB() {
 	}
 
 	appRepo := repository.NewAPPRepository(db)
+	topicRepo := repository.NewTopicRepository(db)
+	clientRepo := repository.NewClientRepository(db)
+
+	appService := service.NewAPPService(appRepo)
+	topicService := service.NewTopicService(topicRepo)
+	clientService := service.NewClientService(clientRepo, appService)
+	notificationService := service.NewNotificationService()
 
 	env = &Environment{
-		appService: service.NewAPPService(appRepo),
+		appService:          appService,
+		topicService:        topicService,
+		clientService:       clientService,
+		notificationService: notificationService,
 	}
 
 	log.Printf("db connection established")
@@ -49,6 +62,8 @@ func main() {
 func StartWithHostAndPort(hostname string, port int) {
 	http.HandleFunc("/api/notification", pushNotificationClient)
 	http.HandleFunc("/api/application", createNewApplication)
+	http.HandleFunc("/api/topic", createNewApplication)
+	http.HandleFunc("/api/client", createNewApplication)
 
 	url := fmt.Sprintf("%s:%d", hostname, port)
 
