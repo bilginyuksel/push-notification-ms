@@ -27,18 +27,33 @@ func NewProducer(brokers []string) Producer {
 	return &saramaProducer{sp: &sp}
 }
 
-func (p *saramaProducer) Send(message string) error {
-	return p.SendWithTopic(defaultTopic, message)
-}
-
-func (p *saramaProducer) SendWithTopic(topic, message string) error {
+func (p *saramaProducer) Send(message producerMessage) error {
 	partition, offset, err := (*p.sp).SendMessage(&sarama.ProducerMessage{
-		Topic:     topic,
+		Topic:     message.topic,
 		Partition: -1,
-		Value:     sarama.StringEncoder(message),
+		Value:     sarama.StringEncoder(message.message),
 	})
 
 	log.Printf("partition: %d, offset: %d", partition, offset)
+
+	return err
+}
+
+func (p *saramaProducer) SendMessages(messages []producerMessage) error {
+	saramaMessages := []*sarama.ProducerMessage{}
+	for _, m := range messages {
+		saramaMessages = append(saramaMessages, &sarama.ProducerMessage{
+			Topic:     m.topic,
+			Partition: -1,
+			Value:     sarama.StringEncoder(m.message),
+		})
+	}
+
+	err := (*p.sp).SendMessages(saramaMessages)
+
+	if err != nil {
+		log.Printf("multiple messages couldn't sent, err: %v", err)
+	}
 
 	return err
 }
@@ -51,8 +66,4 @@ func (p *saramaProducer) Close() error {
 
 	log.Println("producer closed successfully")
 	return nil
-}
-
-func (p *saramaProducer) Ping() {
-
 }

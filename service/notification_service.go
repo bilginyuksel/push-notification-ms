@@ -34,5 +34,7 @@ func (service *notificationServiceImpl) Push(notification entity.Notification) e
 		return err
 	}
 
-	return service.producer.Send(string(bytes))
+	message := queue.NewMessage(string(bytes))
+
+	return service.producer.Send(message)
 }
