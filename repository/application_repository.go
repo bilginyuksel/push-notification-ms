@@ -13,7 +13,13 @@ type appRepoImpl struct {
 }
 
 type APPRepository interface {
+	// Save an application to db
 	Save(a entity.Application) error
+
+	// Delete an application with the given id from db
+	Delete(appID string) error
+
+	// IsExist return true if application found with the given id
 	IsExist(appID string) bool
 }
 
@@ -45,4 +51,18 @@ func (repo *appRepoImpl) IsExist(appID string) bool {
 	}
 
 	return count != 0
+}
+
+func (repo *appRepoImpl) Delete(appID string) error {
+	query := "DELETE FROM C_APP WHERE appId=?"
+
+	if res, err := repo.db.Exec(query, appID); err != nil {
+		log.Printf("error occurred while deleting application, err: %v", err)
+
+		return err
+	} else {
+		log.Printf("application deleted, sql.result: %v", res)
+
+		return nil
+	}
 }

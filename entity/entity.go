@@ -37,6 +37,23 @@ type Client struct {
 }
 
 type Topic struct {
+	RecordID string
+
+	AppID string
+
+	Name string
+
+	Description string
+}
+
+type Subscription struct {
+	RecordID string
+
+	AppID string
+
+	UserID string
+
+	TopicID string
 }
 
 type Notification struct {

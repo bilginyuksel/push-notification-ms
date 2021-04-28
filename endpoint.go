@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -11,7 +10,6 @@ import (
 	"github.com/bilginyuksel/push-notification/repository"
 	"github.com/bilginyuksel/push-notification/request"
 	"github.com/bilginyuksel/push-notification/service"
-	_ "github.com/go-sql-driver/mysql"
 )
 
 const (
@@ -28,11 +26,12 @@ type Environment struct {
 
 var env *Environment = nil
 
-func initDB() {
-	db, err := sql.Open("mysql", "bilginyuksel:toor@tcp(127.0.0.1:3306)/notificationservice")
+func initEnv() {
+
+	db, err := repository.ConnectMySQL(repository.DefaultDBConn)
 
 	if err != nil {
-		panic(err.Error())
+		panic(err)
 	}
 
 	appRepo := repository.NewAPPRepository(db)
@@ -50,12 +49,10 @@ func initDB() {
 		clientService:       clientService,
 		notificationService: notificationService,
 	}
-
-	log.Printf("db connection established")
 }
 
 func main() {
-	go initDB()
+	go initEnv()
 	StartWithHostAndPort(hostname, port)
 }
 
