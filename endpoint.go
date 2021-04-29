@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/bilginyuksel/push-notification/entity"
 	"github.com/bilginyuksel/push-notification/repository"
 	"github.com/bilginyuksel/push-notification/request"
 	"github.com/bilginyuksel/push-notification/service"
@@ -95,6 +96,12 @@ func pushNotificationClient(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	notif := entity.Notification{
+		Title:   notificationReq.Title,
+		Message: notificationReq.Message,
+		Extras:  notificationReq.Extras,
+	}
+	go env.notificationService.Push(notif)
 	// TODO: send notification via messaging queue
 	// go pushNotificationToClient(clientId, *notificationReq)
 }

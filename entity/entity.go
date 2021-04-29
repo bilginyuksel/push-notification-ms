@@ -57,4 +57,7 @@ type Subscription struct {
 }
 
 type Notification struct {
+	Title   string
+	Message string
+	Extras  map[string]string
 }

@@ -31,7 +31,7 @@ type DBConn struct {
 }
 
 func (conn DBConn) buildMysqlDataSourceName() string {
-	return fmt.Sprintf("%s:%s@%s(%s:%d)/%s",
+	return fmt.Sprintf("%s:%s@%s(%s:%d)/%s?parseTime=true",
 		conn.Username,
 		conn.Password,
 		conn.ConnType,

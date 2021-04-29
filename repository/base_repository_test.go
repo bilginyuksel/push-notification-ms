@@ -3,6 +3,8 @@ package repository
 import (
 	"database/sql"
 	"io/ioutil"
+	"log"
+	"strings"
 	"testing"
 )
 
@@ -16,6 +18,12 @@ func TestConnectMySQL(t *testing.T) {
 	}
 
 	t.Log("db connection successfull")
+}
+
+func repositoryTest(t *testing.T, test func(db *sql.DB, t *testing.T)) {
+	db := prepareTestDB()
+	test(db, t)
+	destroyDB(db)
 }
 
 func createTestDB() *sql.DB {
@@ -46,20 +54,27 @@ func createTestDBSchema(db *sql.DB) {
 		panic(err)
 	}
 
-	_, err = db.Exec(string(file))
+	queries := strings.Split(string(file), ";")
+	length := len(queries)
 
-	if err != nil {
-		panic(err)
+	// don't take the last item because when it splits the sql query the last item is empty string
+	for _, query := range queries[:length-1] {
+		_, err = db.Exec(query)
+
+		if err != nil {
+			panic(err)
+		}
 	}
-}
-
-func insertDummyData(db *sql.DB) {
-
 }
 
 func prepareTestDB() *sql.DB {
 	db := createTestDB()
 	createTestDBSchema(db)
-	insertDummyData(db)
+	// insertDummyData(db)
 	return db
+}
+
+func destroyDB(db *sql.DB) {
+	db.Exec("DROP DATABASE testnotificationservice;")
+	log.Printf("test db destroyed")
 }
