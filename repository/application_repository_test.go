@@ -9,6 +9,10 @@ import (
 	"github.com/bilginyuksel/push-notification/entity"
 )
 
+const (
+	cAppInsertQuery = "INSERT INTO C_APP (RECORD_ID, NAME, DESCRIPTION, STATUS, CREATE_TIME, CANCEL_TIME) VALUES ('recordid', 'test_app', 'test_desc', 'Active', '2021-05-01 08:04:15', NULL)"
+)
+
 func TestAppRepositorySave(t *testing.T) {
 	repositoryTest(t, func(db *sql.DB, t *testing.T) {
 
@@ -27,6 +31,7 @@ func TestAppRepositorySave(t *testing.T) {
 			t.Errorf("application save operation failed, err: %v", err)
 		}
 
+		// Query the new inserted Application to test
 		appFromDB := entity.Application{}
 		query := "SELECT RECORD_ID,NAME,DESCRIPTION,STATUS,CREATE_TIME,CANCEL_TIME FROM C_APP WHERE RECORD_ID=?"
 		if err := db.QueryRow(query, application.RecordID).Scan(
@@ -51,21 +56,12 @@ func TestAppRepositoryDelete(t *testing.T) {
 	repositoryTest(t, func(db *sql.DB, t *testing.T) {
 		repo := NewAPPRepository(db)
 
-		application := entity.Application{
-			RecordID:    "recordid",
-			Name:        "Test_Application",
-			Description: "Test_app_desc",
-			Status:      "Active",
-			CreateTime:  time.Now(),
-			CancelTime:  nil,
+		_, err := db.Exec(cAppInsertQuery)
+		if err != nil {
+			t.Errorf("insert query error at testing preperation phase, err: %v", err)
 		}
 
-		if err := repo.Save(application); err != nil {
-			t.Errorf("application save operation failed, err: %v", err)
-		}
-
-		// we believe this is created because we have another test for creation above
-		err := repo.Delete("recordid")
+		err = repo.Delete("recordid")
 
 		if err != nil {
 			t.Errorf("an error occurred while deleting the record")
@@ -78,6 +74,23 @@ func TestAppRepositoryDelete(t *testing.T) {
 		if db.QueryRow(query).Scan(&count); err != nil || count != 0 {
 			t.Errorf("there is a record in database with the same record id")
 		}
+	})
+}
 
+func TestAppRepositoryIsExist(t *testing.T) {
+	repositoryTest(t, func(db *sql.DB, t *testing.T) {
+		repo := NewAPPRepository(db)
+
+		_, err := db.Exec(cAppInsertQuery)
+		if err != nil {
+			t.Errorf("insert query error at testing preperation phase, err: %v", err)
+		}
+
+		if exists := repo.IsExist("recordid"); !exists {
+			t.Errorf("record inserted, but the function returned not exist")
+		}
+		if exists := repo.IsExist("nonoo"); exists {
+			t.Errorf("record not inserted, but the function returned exist")
+		}
 	})
 }
