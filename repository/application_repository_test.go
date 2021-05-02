@@ -23,7 +23,7 @@ func TestAppRepositorySave(t *testing.T) {
 			Name:        "Test_Application",
 			Description: "Test_app_desc",
 			Status:      "Active",
-			CreateTime:  time.Now(),
+			CreateTime:  time.Now().UTC().Round(time.Second),
 			CancelTime:  nil,
 		}
 
@@ -45,8 +45,8 @@ func TestAppRepositorySave(t *testing.T) {
 			t.Errorf("scan operation failed, err: %v", err)
 		}
 
-		if reflect.DeepEqual(appFromDB, application) {
-			t.Errorf("given and expected app are not matched")
+		if !reflect.DeepEqual(appFromDB, application) {
+			t.Errorf("given and expected app are not matched, expected: %v\n fromDb: %v", application, appFromDB)
 		}
 
 	})
