@@ -11,20 +11,11 @@ import (
 
 func TestClientRepositorySave(t *testing.T) {
 	repositoryTest(t, func(db *sql.DB, t *testing.T) {
-		appRepo := NewAPPRepository(db)
+		prep := testPreperation{db}
 		repo := NewClientRepository(db)
 
 		// create app because it is foreign key that bounds these together
-		if err := appRepo.Save(entity.Application{
-			RecordID:    "test_app_id",
-			Name:        "test_name",
-			Description: "test_desc",
-			Status:      "Active",
-			CreateTime:  time.Now().UTC().Round(time.Second),
-			CancelTime:  nil,
-		}); err != nil {
-			t.Errorf("application save operation failed on test prep process, err: %v", err)
-		}
+		prep.createSampleApplication("test_app_id")
 
 		client := entity.Client{
 			RecordID:             "test_id",

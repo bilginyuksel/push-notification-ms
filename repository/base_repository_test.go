@@ -6,6 +6,9 @@ import (
 	"log"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/bilginyuksel/push-notification/entity"
 )
 
 func TestConnectMySQL(t *testing.T) {
@@ -70,11 +73,41 @@ func createTestDBSchema(db *sql.DB) {
 func prepareTestDB() *sql.DB {
 	db := createTestDB()
 	createTestDBSchema(db)
-	// insertDummyData(db)
 	return db
 }
 
 func destroyDB(db *sql.DB) {
 	db.Exec("DROP DATABASE testnotificationservice;")
 	log.Printf("test db destroyed")
+}
+
+type testPreperation struct {
+	db *sql.DB
+}
+
+func (tp *testPreperation) createSampleApplication(recordId string) {
+	appRepo := NewAPPRepository(tp.db)
+	if err := appRepo.Save(entity.Application{
+		RecordID:    recordId,
+		Name:        "test_name",
+		Description: "test_desc",
+		Status:      "Active",
+		CreateTime:  time.Now().UTC().Round(time.Second),
+		CancelTime:  nil,
+	}); err != nil {
+		log.Fatalf("application save operation failed on test prep process, err: %v", err)
+	}
+}
+
+func (tp *testPreperation) createSampleTopic(recordID, appID, name string) {
+	topicRepo := NewTopicRepository(tp.db)
+
+	if err := topicRepo.Save(entity.Topic{
+		RecordID:    recordID,
+		AppID:       appID,
+		Name:        name,
+		Description: "",
+	}); err != nil {
+		log.Fatalf("topic save operation failed on test prep process, err: %v", err)
+	}
 }

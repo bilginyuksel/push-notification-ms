@@ -21,7 +21,7 @@ func NewTopicRepository(db *sql.DB) TopicRepository {
 }
 
 func (repo *topicRepoImpl) Save(t entity.Topic) error {
-	query := "INSERT INTO TOPIC (RECORD_ID, APP_ID, NAME, DESCRIPTION) VALUES (?, ?, ?, ?)"
+	query := "INSERT INTO C_APP_TOPIC (RECORD_ID, APP_ID, NAME, DESCRIPTION) VALUES (?, ?, ?, ?)"
 
 	if res, err := repo.db.Exec(query,
 		t.RecordID, t.AppID, t.Name, t.Description); err != nil {
