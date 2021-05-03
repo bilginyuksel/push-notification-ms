@@ -65,7 +65,7 @@ func TestTopicRepositoryFindByAppIDAndName(t *testing.T) {
 			RecordID:    "test_topic_id",
 			AppID:       "test_app_id",
 			Name:        "test_topic_name",
-			Description: "",
+			Description: "test_topic_desc",
 		}
 
 		if !reflect.DeepEqual(*topic, expected) {

@@ -89,8 +89,8 @@ func (tp *testPreperation) createSampleApplication(recordId string) {
 	appRepo := NewAPPRepository(tp.db)
 	if err := appRepo.Save(entity.Application{
 		RecordID:    recordId,
-		Name:        "test_name",
-		Description: "test_desc",
+		Name:        "test_app_name",
+		Description: "test_app_desc",
 		Status:      "Active",
 		CreateTime:  time.Now().UTC().Round(time.Second),
 		CancelTime:  nil,
@@ -106,8 +106,23 @@ func (tp *testPreperation) createSampleTopic(recordID, appID, name string) {
 		RecordID:    recordID,
 		AppID:       appID,
 		Name:        name,
-		Description: "",
+		Description: "test_topic_desc",
 	}); err != nil {
 		log.Fatalf("topic save operation failed on test prep process, err: %v", err)
+	}
+}
+
+func (tp *testPreperation) createSampleUser(recordId, appId string) {
+	userRepo := NewClientRepository(tp.db)
+
+	if err := userRepo.Save(entity.Client{
+		RecordID:             recordId,
+		ClientID:             "test_client_id",
+		APPID:                appId,
+		Status:               "Active",
+		RegisterTime:         time.Now().UTC().Round(time.Second),
+		LastStatusChangeTime: time.Now().UTC().Round(time.Second),
+	}); err != nil {
+		log.Fatalf("user save operation failed on test prep process, err: %v", err)
 	}
 }
