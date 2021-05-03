@@ -126,3 +126,16 @@ func (tp *testPreperation) createSampleUser(recordId, appId string) {
 		log.Fatalf("user save operation failed on test prep process, err: %v", err)
 	}
 }
+
+func (tp *testPreperation) createSampleSubscription(recordId, appId, userId, topicId string) {
+	repo := NewSubscriberRepo(tp.db)
+
+	if err := repo.Save(entity.Subscription{
+		RecordID: recordId,
+		AppID:    appId,
+		UserID:   userId,
+		TopicID:  topicId,
+	}); err != nil {
+		log.Fatalf("subscription operation failed on test prep process, err: %v", err)
+	}
+}
