@@ -11,6 +11,7 @@ import (
 	"github.com/bilginyuksel/push-notification/repository"
 	"github.com/bilginyuksel/push-notification/request"
 	"github.com/bilginyuksel/push-notification/service"
+	"github.com/gorilla/mux"
 )
 
 const (
@@ -54,7 +55,27 @@ func initEnv() {
 
 func main() {
 	go initEnv()
-	StartWithHostAndPort(hostname, port)
+
+	router := mux.NewRouter()
+
+	appRouter := router.PathPrefix("/application").Subrouter()
+	notificationRouter := router.PathPrefix("/notification").Subrouter()
+	topicRouter := router.PathPrefix("/topic").Subrouter()
+	clientRouter := router.PathPrefix("/client").Subrouter()
+
+	RegisterApplicationEndpoints(appRouter)
+	RegisterNotificationEndpoints(notificationRouter)
+	RegisterTopicEndpoints(topicRouter)
+	RegisterClientEndpoints(clientRouter)
+
+	http.Handle("/", router)
+
+	url := fmt.Sprintf("%s:%d", hostname, port)
+
+	log.Printf("server up and running, url: %v", url)
+
+	log.Fatal(http.ListenAndServe(url, nil))
+	// StartWithHostAndPort(hostname, port)
 }
 
 func StartWithHostAndPort(hostname string, port int) {
