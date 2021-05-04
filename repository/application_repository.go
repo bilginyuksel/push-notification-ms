@@ -16,6 +16,9 @@ type APPRepository interface {
 	// Save an application to db
 	Save(a entity.Application) error
 
+	// Query get list of applications
+	GetAll() ([]*entity.Application, error)
+
 	// Delete an application with the given id from db
 	Delete(recordID string) error
 
@@ -65,4 +68,35 @@ func (repo *appRepoImpl) Delete(recordID string) error {
 
 		return nil
 	}
+}
+
+func (repo *appRepoImpl) GetAll() ([]*entity.Application, error) {
+	query := "SELECT RECORD_ID, NAME, DESCRIPTION, STATUS, CREATE_TIME, CANCEL_TIME FROM C_APP"
+
+	appList := []*entity.Application{}
+
+	rows, err := repo.db.Query(query)
+
+	if err != nil {
+		log.Printf("error occurred while getting app, err: %v", err)
+		return nil, err
+	}
+
+	for rows.Next() {
+		app := &entity.Application{}
+		if err := rows.Scan(
+			&app.RecordID,
+			&app.Name,
+			&app.Description,
+			&app.Status,
+			&app.CreateTime,
+			&app.CancelTime,
+		); err != nil {
+			log.Printf("error occurred on scanning query result")
+		} else {
+			appList = append(appList, app)
+		}
+	}
+
+	return appList, nil
 }

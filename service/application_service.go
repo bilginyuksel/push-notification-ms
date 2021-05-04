@@ -17,6 +17,7 @@ type appServiceImpl struct {
 
 type APPService interface {
 	CreateNewAPP(req request.CreateAppRequest) (*entity.Application, error)
+	GetAll() ([]*entity.Application, error)
 	IsExist(appID string) bool
 }
 
@@ -55,4 +56,8 @@ func (service *appServiceImpl) CreateNewAPP(req request.CreateAppRequest) (*enti
 
 func (service *appServiceImpl) IsExist(appID string) bool {
 	return service.repo.IsExist(appID)
+}
+
+func (service *appServiceImpl) GetAll() ([]*entity.Application, error) {
+	return service.repo.GetAll()
 }

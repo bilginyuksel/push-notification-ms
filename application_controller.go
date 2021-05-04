@@ -59,7 +59,17 @@ func CreateApplication(w http.ResponseWriter, r *http.Request) {
 }
 
 func QueryApplication(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("hello world"))
+	apps, err := env.appService.GetAll()
+
+	if err != nil {
+		writeJSON(w, ServiceError, 403)
+		return
+	}
+
+	writeJSON(w, response.QueryAppResponse{
+		BaseResponse: OkResponse,
+		Apps:         apps,
+	}, 200)
 }
 
 func QueryApplicationByID(w http.ResponseWriter, r *http.Request) {
