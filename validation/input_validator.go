@@ -7,6 +7,16 @@ import (
 	"reflect"
 )
 
+// optional:"false"
+// empty:"false"
+// between:"3,5" // float can be used also time can be used
+// match:"AzI[0-9]" // match regular expression
+// default: "default value" // default value
+
+type Validator interface {
+	Validate(field, value string, tags reflect.StructTag) bool
+}
+
 type TestValidation struct {
 	fsd string `empty:"false"`
 }
