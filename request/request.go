@@ -7,6 +7,7 @@ type NotificationRequest struct {
 }
 
 type CreateAppRequest struct {
+	UserID      string `json:"userId"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
 }
@@ -21,6 +22,7 @@ type GetClientIDRequest struct {
 }
 
 type CreateClientRequest struct {
+	UserID   string `json:"userId"`
 	APPID    string `json:"appId"`
 	ClientID string `json:"clientId"`
 }

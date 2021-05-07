@@ -28,7 +28,7 @@ func NewClientService(repo repository.ClientRepository, appService APPService) C
 
 func (self *clientServiceImpl) CreateNewClient(req request.CreateClientRequest) (*entity.Client, error) {
 
-	if isExist := self.appService.IsExist(req.APPID); !isExist {
+	if isExist := self.appService.IsExist(req.UserID, req.APPID); !isExist {
 		log.Println("app could not found")
 		return nil, errors.New("app could not found")
 	}

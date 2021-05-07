@@ -3,6 +3,7 @@ package entity
 import "time"
 
 type Application struct {
+	UserID string
 	// RecordID it is a unique id for application
 	RecordID string
 

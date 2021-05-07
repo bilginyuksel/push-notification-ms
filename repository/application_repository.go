@@ -20,10 +20,10 @@ type APPRepository interface {
 	GetAll() ([]*entity.Application, error)
 
 	// Delete an application with the given id from db
-	Delete(recordID string) error
+	Delete(userID, recordID string) error
 
 	// IsExist return true if application found with the given id
-	IsExist(appID string) bool
+	IsExist(userID, recordID string) bool
 }
 
 func NewAPPRepository(db *sql.DB) APPRepository {
@@ -31,9 +31,9 @@ func NewAPPRepository(db *sql.DB) APPRepository {
 }
 
 func (repo *appRepoImpl) Save(a entity.Application) error {
-	query := "INSERT INTO C_APP (RECORD_ID, NAME, DESCRIPTION, STATUS, CREATE_TIME, CANCEL_TIME) VALUES (?, ?, ?, ?, ?, ?)"
+	query := "INSERT INTO C_APP (USER_ID, RECORD_ID, NAME, DESCRIPTION, STATUS, CREATE_TIME, CANCEL_TIME) VALUES (?, ?, ?, ?, ?, ?, ?)"
 	if res, err := repo.db.Exec(query,
-		a.RecordID, a.Name, a.Description, a.Status, a.CreateTime, a.CancelTime); err != nil {
+		a.UserID, a.RecordID, a.Name, a.Description, a.Status, a.CreateTime, a.CancelTime); err != nil {
 
 		log.Printf("error occured on application creation, err: %v", err)
 
@@ -45,21 +45,21 @@ func (repo *appRepoImpl) Save(a entity.Application) error {
 	}
 }
 
-func (repo *appRepoImpl) IsExist(appID string) bool {
+func (repo *appRepoImpl) IsExist(userID, recordID string) bool {
 	var count int
-	query := "SELECT COUNT(*) FROM C_APP WHERE RECORD_ID=?"
+	query := "SELECT COUNT(*) FROM C_APP WHERE USER_ID=? AND RECORD_ID=?"
 
-	if err := repo.db.QueryRow(query, appID).Scan(&count); err != nil {
+	if err := repo.db.QueryRow(query, userID, recordID).Scan(&count); err != nil {
 		log.Printf("sql exception occurred, err: %v", err)
 	}
 
 	return count != 0
 }
 
-func (repo *appRepoImpl) Delete(recordID string) error {
-	query := "DELETE FROM C_APP WHERE RECORD_ID=?"
+func (repo *appRepoImpl) Delete(userID, recordID string) error {
+	query := "DELETE FROM C_APP WHERE USER_ID=? AND RECORD_ID=?"
 
-	if res, err := repo.db.Exec(query, recordID); err != nil {
+	if res, err := repo.db.Exec(query, userID, recordID); err != nil {
 		log.Printf("error occurred while deleting application, err: %v", err)
 
 		return err
@@ -71,7 +71,7 @@ func (repo *appRepoImpl) Delete(recordID string) error {
 }
 
 func (repo *appRepoImpl) GetAll() ([]*entity.Application, error) {
-	query := "SELECT RECORD_ID, NAME, DESCRIPTION, STATUS, CREATE_TIME, CANCEL_TIME FROM C_APP"
+	query := "SELECT USER_ID, RECORD_ID, NAME, DESCRIPTION, STATUS, CREATE_TIME, CANCEL_TIME FROM C_APP"
 
 	appList := []*entity.Application{}
 
@@ -85,6 +85,7 @@ func (repo *appRepoImpl) GetAll() ([]*entity.Application, error) {
 	for rows.Next() {
 		app := &entity.Application{}
 		if err := rows.Scan(
+			&app.UserID,
 			&app.RecordID,
 			&app.Name,
 			&app.Description,
