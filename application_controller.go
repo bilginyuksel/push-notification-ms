@@ -59,7 +59,10 @@ func CreateApplication(w http.ResponseWriter, r *http.Request) {
 }
 
 func QueryApplication(w http.ResponseWriter, r *http.Request) {
-	apps, err := env.appService.GetAll()
+	query := r.URL.Query()
+	userId := query.Get("userId")
+
+	apps, err := env.appService.GetAll(userId)
 
 	if err != nil {
 		writeJSON(w, ServiceError, 403)

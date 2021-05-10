@@ -17,7 +17,7 @@ type APPRepository interface {
 	Save(a entity.Application) error
 
 	// Query get list of applications
-	GetAll() ([]*entity.Application, error)
+	GetAll(userID string) ([]*entity.Application, error)
 
 	// Delete an application with the given id from db
 	Delete(userID, recordID string) error
@@ -70,12 +70,12 @@ func (repo *appRepoImpl) Delete(userID, recordID string) error {
 	}
 }
 
-func (repo *appRepoImpl) GetAll() ([]*entity.Application, error) {
-	query := "SELECT USER_ID, RECORD_ID, NAME, DESCRIPTION, STATUS, CREATE_TIME, CANCEL_TIME FROM C_APP"
+func (repo *appRepoImpl) GetAll(userID string) ([]*entity.Application, error) {
+	query := "SELECT USER_ID, RECORD_ID, NAME, DESCRIPTION, STATUS, CREATE_TIME, CANCEL_TIME FROM C_APP WHERE USER_ID=?"
 
 	appList := []*entity.Application{}
 
-	rows, err := repo.db.Query(query)
+	rows, err := repo.db.Query(query, userID)
 
 	if err != nil {
 		log.Printf("error occurred while getting app, err: %v", err)
