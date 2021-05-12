@@ -5,16 +5,18 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 )
 
-var fieldValidator map[string]Validator
+var fieldValidator map[string][]Validator
 
 type Tok struct {
 	Username   string    `json:"username" optional:"true" empty:"true" default:"somethin"`
 	Email      string    `json:"email"`
-	Password   string    `json:"password"`
+	Password   string    `json:"password" between:"30-50"`
 	Age        int       `json:"age"`
 	CreateTime time.Time `json:"createTime"`
 }
@@ -44,6 +46,17 @@ func (sv *stringValidator) Validate(name, value string, tag reflect.StructTag) b
 		def = val
 	}
 
+	if betweenStr, ok := tag.Lookup("between"); ok {
+		sep := strings.Split(betweenStr, "-")
+		minLimit, _ := strconv.Atoi(sep[0])
+		maxLimit, _ := strconv.Atoi(sep[1])
+
+		if len(value) < minLimit || len(value) > maxLimit {
+			// between limit could not satisfied
+			return false
+		}
+	}
+
 	if !optional && !empty && value == "" {
 		fmt.Println("validation failed, because optional and empty rules are not satisfied")
 		return false
@@ -57,7 +70,7 @@ func (sv *stringValidator) Validate(name, value string, tag reflect.StructTag) b
 
 	fmt.Printf("name: %v, value: %v, tags: %v\n", name, value, tag)
 
-	return false
+	return true
 }
 
 func Test(t *testing.T) {
@@ -72,13 +85,13 @@ func Test(t *testing.T) {
 
 	// fmt.Println(t1Field)
 	// fmt.Println(t2Field)
-	fieldValidator = make(map[string]Validator)
-	fieldValidator["string"] = &stringValidator{}
+	fieldValidator = make(map[string][]Validator)
+	fieldValidator["string"] = append(fieldValidator["string"], &stringValidator{})
 
 	s := &Tok{
 		Username:   "bilyuk",
 		Email:      "bilyuk@gmail.com",
-		Password:   "pass",
+		Password:   "passadasudakdsa;kdsajasdjsasdsa",
 		Age:        20,
 		CreateTime: time.Now(),
 	}
@@ -108,14 +121,18 @@ func tValidate(bytes []byte, inp interface{}) bool {
 		fieldType := currentField.Type.Name()
 		validator, ok := fieldValidator[fieldType]
 		if !ok {
-			fmt.Printf("no validator found\n")
+			log.Printf("no validator found for type: %v\n", fieldType)
 			continue
 		}
-		v := validator.Validate(currentField.Name, r.Field(i).String(), currentField.Tag)
-		if v {
-			fmt.Printf("input is valid\n")
+		fmt.Println()
+		log.Printf("currentField: %v\n", currentField)
+		for _, valid := range validator {
+			if v := valid.Validate(currentField.Name, r.Field(i).String(), currentField.Tag); v {
+				log.Println("input validated")
+			} else {
+				log.Println("input could not validated")
+			}
 		}
-		fmt.Printf("currentField: %v\n", currentField)
 	}
 
 	return true

@@ -38,9 +38,9 @@ func CreateApplication(w http.ResponseWriter, r *http.Request) {
 	b, _ := ioutil.ReadAll(r.Body)
 
 	req := &request.CreateAppRequest{}
-	isValid := validation.Validate(b, req)
+	err := validation.ValidateWithBytes(b, req)
 
-	if !isValid {
+	if err != nil {
 		writeJSON(w, IllegalArgumentException, 402)
 		return
 	}

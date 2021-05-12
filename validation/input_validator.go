@@ -2,48 +2,81 @@ package validation
 
 import (
 	"encoding/json"
-	"fmt"
-	"log"
 	"reflect"
 )
+
+type Validator interface {
+	Validate(field, value string, tags reflect.StructTag) bool
+}
+
+type KeyType string
+
+type ValidationRule func(field, value string, tags reflect.StructTag) error
 
 // optional:"false"
 // empty:"false"
 // between:"3,5" // float can be used also time can be used
 // match:"AzI[0-9]" // match regular expression
 // default: "default value" // default value
+var (
+	generalValidationRules = make(map[string][]ValidationRule)
+)
 
-type Validator interface {
-	Validate(field, value string, tags reflect.StructTag) bool
+const (
+	KeyTypeString  KeyType = "string"
+	KeyTypeTime    KeyType = "time"
+	KeyTypeBoolean KeyType = "bool"
+	KeyTypeInt     KeyType = "int"
+	KeyTypeInt64   KeyType = "int64"
+	KeyTypeFloat32 KeyType = "float32"
+	KeyTypeFloat64 KeyType = "float64"
+)
+
+func NewValidationRule(key string, rule ValidationRule) {
+	generalValidationRules[key] = append(generalValidationRules[key], rule)
 }
 
-type TestValidation struct {
-	fsd string `empty:"false"`
+func Validate(inp interface{}) error {
+	structType := reflect.TypeOf(inp)
+	r := reflect.ValueOf(inp).Elem()
+
+	numberOfFields := structType.Elem().NumField()
+
+	for i := 0; i < numberOfFields; i++ {
+		field := structType.Elem().Field(i)
+		fieldType := field.Type.Name()
+		fieldName := field.Name
+		fieldValue := r.Field(i).String()
+		fieldTags := field.Tag
+
+		if validationFuncList, ok := generalValidationRules[fieldType]; ok {
+			err := executeValidationRules(validationFuncList, fieldName, fieldValue, fieldTags)
+
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
-func main() {
-	t1 := TestValidation{}
-	t2 := TestValidation{fsd: "notEmpty"}
-
-	type1 := reflect.TypeOf(t1)
-	type2 := reflect.TypeOf(t2)
-
-	t1Field := type1.Field(0)
-	t2Field := type2.Field(0)
-
-	fmt.Println(t1Field)
-	fmt.Println(t2Field)
-}
-
-func Validate(bytes []byte, inp interface{}) bool {
+func ValidateWithBytes(bytes []byte, inp interface{}) error {
 	err := json.Unmarshal(bytes, inp)
 
 	if err != nil {
-		log.Printf("json unmarshal failed for input, err: %v", err)
-		return false
+		return err
 	}
 
-	// check input tags ...
+	return Validate(inp)
+}
 
-	return true
+func executeValidationRules(ruleFuncList []ValidationRule, fieldName, fieldValue string, tags reflect.StructTag) error {
+	for _, ruleFunc := range ruleFuncList {
+		err := ruleFunc(fieldName, fieldValue, tags)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
