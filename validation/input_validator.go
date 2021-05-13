@@ -27,16 +27,6 @@ type internalValidatorImpl struct {
 	basic             bool
 }
 
-var (
-	// Store all of the known types to understand captured type.
-	// If the captured type is a struct we need to validate it recursively.
-	knownTypes = map[KeyType]bool{
-		KeyTypeString: true,
-		KeyTypeTime:   true,
-		KeyTypeBool:   true,
-	}
-)
-
 const (
 	KeyTypeString  KeyType = "string"
 	KeyTypeTime    KeyType = "time"
@@ -47,11 +37,6 @@ const (
 	KeyTypeFloat64 KeyType = "float64"
 )
 
-// optional:"false"
-// empty:"false"
-// between:"3,5" // float can be used also time can be used
-// match:"AzI[0-9]" // match regular expression
-// default: "default value" // default value
 var (
 	generalValidationRules = make(map[string][]internalValidator)
 )
@@ -98,22 +83,23 @@ func ValidateWithBytes(bytes []byte, inp interface{}) error {
 	return Validate(inp)
 }
 
-/* Validate function checks every field of the given interface recursively.
+/*
+Validate function checks every field of the given interface recursively.
 According to given tags it will execute the predefined rules for the type.
 If any error occurs at the validation process it will return a meaningful error.
 
-__Constraints__
+	Constraints
 
 1. Given interface and interfaces as fields should be pointers.
 
-__Advanced Users__
+	Advanced Users
 
 Users can define new tags and rules for existing types easily.
 There are multiple default tags already defined and ready to use.
 But if the developer wants to define a new custom tag, he/she can easily do that.
 
 
-Example:
+	Example:
 
 
 	import (
