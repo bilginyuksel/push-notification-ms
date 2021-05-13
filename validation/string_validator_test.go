@@ -17,10 +17,10 @@ import (
 // }
 
 type TestString struct {
-	Email string `json:"email" blank:"false" pattern:"^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$"`
+	Email string `json:"email" blank:"false" pattern:"^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$" between:"10-40"`
 }
 
-func TestValidation_StringStruct(t *testing.T) {
+func TestValidation_StringField(t *testing.T) {
 	testCases := []struct {
 		st       *TestString
 		scenario string
@@ -29,7 +29,7 @@ func TestValidation_StringStruct(t *testing.T) {
 		{
 			st:       &TestString{Email: "test@gmail.com"},
 			scenario: "example simple gmail",
-			expected: true,
+			expected: false,
 		},
 		{
 			st:       &TestString{Email: "   "},
