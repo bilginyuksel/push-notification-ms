@@ -15,7 +15,7 @@ const (
 )
 
 var (
-	between = func(field, value string, tags reflect.StructTag) error {
+	between = func(field string, value int, tags reflect.StructTag) error {
 		if betweenStr, ok := tags.Lookup("between"); ok {
 			minMaxSplitted := strings.Split(betweenStr, "-")
 			if len(minMaxSplitted) != 2 {
@@ -31,9 +31,9 @@ var (
 			// value should be converted to int automatically
 			// maybe we can send data as byte array too. Because it is simplistic
 			// and also for struct types it is more efficient to transfer data in byte format
-			intVal, _ := strconv.Atoi(value)
-			if min > intVal || max < intVal {
-				log.Printf("min: %d, max: %d, value: %d\n", min, max, intVal)
+			// intVal, _ := strconv.Atoi(value)
+			if min > value || max < value {
+				log.Printf("min: %d, max: %d, value: %d\n", min, max, value)
 				return errors.New(betweenValueIsNotInRange)
 			}
 		}

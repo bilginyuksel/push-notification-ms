@@ -6,60 +6,69 @@ import (
 	"reflect"
 )
 
-type Validator interface {
-	Validate(field, value string, tags reflect.StructTag) bool
-}
-
-type KeyType string
-
-type BasicValidationFunc func(field, value string, tags reflect.StructTag) error
-type AdvancedValidationFunc func(field reflect.StructField, value reflect.Value) error
+type (
+	ValidateInt            func(field string, value int, tags reflect.StructTag) error
+	ValidateInt64          func(field string, value int64, tags reflect.StructTag) error
+	ValidateString         func(field string, value string, tags reflect.StructTag) error
+	ValidateFloat32        func(field string, value float32, tags reflect.StructTag) error
+	ValidateFloat64        func(field string, value float64, tags reflect.StructTag) error
+	AdvancedValidationFunc func(field reflect.StructField, value reflect.Value) error
+)
 
 type internalValidator interface {
-	basicValidate(field, value string, tags reflect.StructTag) error
+	basicValidate(field string, value int, tags reflect.StructTag) error
 	advValidate(field reflect.StructField, value reflect.Value) error
 	isBasic() bool
 }
 
 type internalValidatorImpl struct {
-	basicValidator    BasicValidationFunc
+	basicValidator    ValidateInt
 	advancedValidator AdvancedValidationFunc
 	basic             bool
 }
 
+// const (
+// 	String  Type = Type(reflect.String)
+// 	Time    Type = "time"
+// 	Bool    Type = "bool"
+// 	Int     Type = "int"
+// 	Int64   Type = "int64"
+// 	Float32 Type = "float32"
+// 	Float64 Type = "float64"
+// )
+
 const (
-	KeyTypeString  KeyType = "string"
-	KeyTypeTime    KeyType = "time"
-	KeyTypeBool    KeyType = "bool"
-	KeyTypeInt     KeyType = "int"
-	KeyTypeInt64   KeyType = "int64"
-	KeyTypeFloat32 KeyType = "float32"
-	KeyTypeFloat64 KeyType = "float64"
+	Time   reflect.Kind = 99
+	String reflect.Kind = reflect.String
 )
 
 var (
-	generalValidationRules = make(map[string][]internalValidator)
+	validatorMap = make(map[reflect.Kind][]internalValidator)
 )
 
 func init() {
-	NewBasicValidation(KeyTypeString, notBlank)
-	NewBasicValidation(KeyTypeString, matchesRegExp)
-	NewBasicValidation(KeyTypeString, lengthBetween)
+	NewAdvValidation(reflect.String, notBlank)
+	NewAdvValidation(reflect.String, matchesRegExp)
+	NewAdvValidation(reflect.String, lengthBetween)
 
-	NewBasicValidation(KeyTypeInt, between)
+	NewBasicValidation(reflect.Int, between)
 }
 
-func NewBasicValidation(key KeyType, fun BasicValidationFunc) {
+func NewBasicValidation(key reflect.Kind, fun ValidateInt) {
 	internalValidator := newInternalValidatorBasicFun(fun)
-	generalValidationRules[string(key)] = append(generalValidationRules[string(key)], internalValidator)
+	validatorMap[key] = append(validatorMap[key], internalValidator)
+}
+func NewValidateInt(fun ValidateInt) {
+	internalValidator := newInternalValidatorBasicFun(fun)
+	validatorMap[reflect.Int] = append(validatorMap[reflect.Int], internalValidator)
 }
 
-func NewAdvValidation(key KeyType, fun AdvancedValidationFunc) {
+func NewAdvValidation(key reflect.Kind, fun AdvancedValidationFunc) {
 	internalValidator := newInternalValidatorAdvFun(fun)
-	generalValidationRules[string(key)] = append(generalValidationRules[string(key)], internalValidator)
+	validatorMap[key] = append(validatorMap[key], internalValidator)
 }
 
-func newInternalValidatorBasicFun(fun BasicValidationFunc) internalValidator {
+func newInternalValidatorBasicFun(fun ValidateInt) internalValidator {
 	return &internalValidatorImpl{
 		basicValidator: fun,
 		basic:          true,
@@ -167,18 +176,19 @@ func Validate(inp interface{}) error {
 
 	for i := 0; i < numFields; i++ {
 		field := structType.Elem().Field(i)
-		fieldType := field.Type.Name()
+		kind := field.Type.Kind()
 
-		// If current type is a struct recursively validate its fields
-		if field.Type.Kind() == reflect.Struct {
-			err := Validate(reflectValue.FieldByName(field.Name).Interface())
+		if validatorFunList, ok := validatorMap[kind]; ok {
+			err := executeValidationRules(validatorFunList, field, reflectValue)
 
 			if err != nil {
 				return err
 			}
+		}
 
-		} else if validationFuncList, ok := generalValidationRules[fieldType]; ok {
-			err := executeValidationRules(validationFuncList, field, reflectValue)
+		// If current type is a struct recursively validate its fields
+		if kind == reflect.Struct {
+			err := Validate(reflectValue.FieldByName(field.Name).Interface())
 
 			if err != nil {
 				return err
@@ -193,9 +203,9 @@ func executeValidationRules(ruleFuncList []internalValidator, field reflect.Stru
 	for _, validator := range ruleFuncList {
 		var err error
 		if validator.isBasic() {
-			err = validator.basicValidate(field.Name, value.FieldByName(field.Name).String(), field.Tag)
+			err = validator.basicValidate(field.Name, int(value.FieldByName(field.Name).Int()), field.Tag)
 		} else {
-			err = validator.advValidate(field, value)
+			err = validator.advValidate(field, value.FieldByName(field.Name))
 		}
 
 		if err != nil {
@@ -205,7 +215,7 @@ func executeValidationRules(ruleFuncList []internalValidator, field reflect.Stru
 	return nil
 }
 
-func (iv *internalValidatorImpl) basicValidate(field, value string, tags reflect.StructTag) error {
+func (iv *internalValidatorImpl) basicValidate(field string, value int, tags reflect.StructTag) error {
 	return iv.basicValidator(field, value, tags)
 }
 

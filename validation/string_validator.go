@@ -17,14 +17,20 @@ const (
 )
 
 var (
-	notBlank = func(field, value string, tags reflect.StructTag) error {
-		if blank, ok := tags.Lookup("blank"); ok && blank == "false" && strings.TrimSpace(value) != "" {
+	notBlank = func(field reflect.StructField, value reflect.Value) error {
+		tags := field.Tag
+		strVal := value.String()
+
+		if blank, ok := tags.Lookup("blank"); ok && blank == "false" && strings.TrimSpace(strVal) != "" {
 			return nil
 		}
 		return errors.New(notBlankErr)
 	}
 
-	matchesRegExp = func(field, value string, tags reflect.StructTag) error {
+	matchesRegExp = func(field reflect.StructField, value reflect.Value) error {
+		tags := field.Tag
+		strVal := value.String()
+
 		pattern, ok := tags.Lookup("pattern")
 
 		if !ok {
@@ -37,8 +43,8 @@ var (
 			return err
 		}
 
-		if !regExp.MatchString(value) {
-			return errors.New(fmt.Sprintf(regExpMatchErr, value))
+		if !regExp.MatchString(strVal) {
+			return errors.New(fmt.Sprintf(regExpMatchErr, strVal))
 		}
 
 		return nil
@@ -47,7 +53,10 @@ var (
 	// Same with the int_validator between function
 	// the only difference is when you use between with string it compares the length
 	// but with int it compares the actual value
-	lengthBetween = func(field, value string, tags reflect.StructTag) error {
+	lengthBetween = func(field reflect.StructField, value reflect.Value) error {
+		tags := field.Tag
+		strVal := value.String()
+
 		if lengthBetweenStr, ok := tags.Lookup("between"); ok {
 			minMaxSplitted := strings.Split(lengthBetweenStr, "-")
 			if len(minMaxSplitted) != 2 {
@@ -60,7 +69,7 @@ var (
 				return errors.New(betweenElemNoIntErr)
 			}
 
-			if min > len(value) || max < len(value) {
+			if min > len(strVal) || max < len(strVal) {
 				// log.Printf("min: %d, max: %d, value_length: %d", min, max, len(value))
 				return errors.New(betweenStrLengthIsNotInRange)
 			}
