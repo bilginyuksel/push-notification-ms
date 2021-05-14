@@ -126,9 +126,11 @@ func NewKind(fullKindName string, customKind Kind) {
 }
 
 func init() {
-	NewValidator(String, notBlank)
-	NewValidator(String, matchesRegExp)
-	NewValidator(String, lengthBetween)
+	NewStringValidator(matchesRegExp)
+	NewStringValidator(lengthBetween)
+	NewStringValidator(notBlank)
+	NewStringValidator(lengthEqual)
+	NewValidator(String, setDefault)
 
 	NewIntValidator(between)
 }

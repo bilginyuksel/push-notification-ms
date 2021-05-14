@@ -1,0 +1,3 @@
+# Validation
+
+Define your structs and whenever you use them validate with your own rules without writing any validation code. Sometimes it can be painful to write validation checkers. Because you should think about all the edge cases and it is the code that you don't want to have in your codebase. This library gives you the opportunity to easily write constraints to your structs and validate any kind of constraint with one line function.
