@@ -4,84 +4,245 @@ import (
 	"encoding/json"
 	"log"
 	"reflect"
+	"strings"
+	"time"
 )
 
 type (
-	ValidateInt            func(field string, value int, tags reflect.StructTag) error
-	ValidateInt64          func(field string, value int64, tags reflect.StructTag) error
-	ValidateString         func(field string, value string, tags reflect.StructTag) error
-	ValidateFloat32        func(field string, value float32, tags reflect.StructTag) error
-	ValidateFloat64        func(field string, value float64, tags reflect.StructTag) error
-	AdvancedValidationFunc func(field reflect.StructField, value reflect.Value) error
+	Kind uint
+
+	FuncValidateInt       func(value int, tags reflect.StructTag) error
+	FuncValidateInt64     func(value int64, tags reflect.StructTag) error
+	FuncValidateString    func(value string, tags reflect.StructTag) error
+	FuncValidateFloat32   func(value float32, tags reflect.StructTag) error
+	FuncValidateFloat64   func(value float64, tags reflect.StructTag) error
+	FuncValidateBool      func(value bool, tags reflect.StructTag) error
+	FuncValidateInterface func(value interface{}, tags reflect.StructTag) error
+	FuncValidateTime      func(value time.Time, tags reflect.StructTag) error
+	FuncValidateGlob      func(field reflect.StructField, value reflect.Value) error
 )
 
-type internalValidator interface {
-	basicValidate(field string, value int, tags reflect.StructTag) error
-	advValidate(field reflect.StructField, value reflect.Value) error
-	isBasic() bool
+type Validator interface {
+	Validate(field reflect.StructField, value reflect.Value) error
 }
 
-type internalValidatorImpl struct {
-	basicValidator    ValidateInt
-	advancedValidator AdvancedValidationFunc
-	basic             bool
-}
+type (
+	intValidator struct {
+		v FuncValidateInt
+	}
 
-// const (
-// 	String  Type = Type(reflect.String)
-// 	Time    Type = "time"
-// 	Bool    Type = "bool"
-// 	Int     Type = "int"
-// 	Int64   Type = "int64"
-// 	Float32 Type = "float32"
-// 	Float64 Type = "float64"
-// )
+	int64Validator struct {
+		v FuncValidateInt64
+	}
+
+	float32Validator struct {
+		v FuncValidateFloat32
+	}
+
+	float64Validator struct {
+		v FuncValidateFloat64
+	}
+
+	boolValidator struct {
+		v FuncValidateBool
+	}
+
+	stringValidator struct {
+		v FuncValidateString
+	}
+
+	interfaceValidator struct {
+		v FuncValidateInterface
+	}
+
+	timeValidator struct {
+		v FuncValidateTime
+	}
+
+	globalValidator struct {
+		v FuncValidateGlob
+	}
+)
 
 const (
-	Time   reflect.Kind = 99
-	String reflect.Kind = reflect.String
+	Invalid Kind = iota
+	Bool
+	Int
+	Int8
+	Int16
+	Int32
+	Int64
+	Uint
+	Uint8
+	Uint16
+	Uint32
+	Uint64
+	Uintptr
+	Float32
+	Float64
+	Complex64
+	Complex128
+	Array
+	Chan
+	Func
+	Interface
+	Map
+	Ptr
+	Slice
+	String
+	Struct
+	UnsafePointer
+	Time
 )
+
+var kindMap = map[string]Kind{
+	"bool":      Bool,
+	"int":       Int,
+	"int64":     Int64,
+	"float32":   Float32,
+	"float64":   Float64,
+	"array":     Array,
+	"interface": Interface,
+	"map":       Map,
+	"slice":     Slice,
+	"string":    String,
+	"struct":    Struct,
+	"time.Time": Time,
+}
 
 var (
-	validatorMap = make(map[reflect.Kind][]internalValidator)
+	validatorMap = make(map[Kind][]Validator)
 )
 
+// NewKind when specifying a new kind name you need to check the correct name for your struct.
+// For example if you work on package name validation in your project. The structs you have created
+// in that package should named like validation.StructName...
+func NewKind(fullKindName string, customKind Kind) {
+	if _, ok := kindMap[fullKindName]; ok {
+		log.Printf("kind is already exists")
+	} else {
+		kindMap[fullKindName] = customKind
+	}
+}
+
 func init() {
-	NewAdvValidation(reflect.String, notBlank)
-	NewAdvValidation(reflect.String, matchesRegExp)
-	NewAdvValidation(reflect.String, lengthBetween)
+	NewValidator(String, notBlank)
+	NewValidator(String, matchesRegExp)
+	NewValidator(String, lengthBetween)
 
-	NewBasicValidation(reflect.Int, between)
+	NewIntValidator(between)
 }
 
-func NewBasicValidation(key reflect.Kind, fun ValidateInt) {
-	internalValidator := newInternalValidatorBasicFun(fun)
-	validatorMap[key] = append(validatorMap[key], internalValidator)
-}
-func NewValidateInt(fun ValidateInt) {
-	internalValidator := newInternalValidatorBasicFun(fun)
-	validatorMap[reflect.Int] = append(validatorMap[reflect.Int], internalValidator)
+func NewIntValidator(fun FuncValidateInt) {
+	v := &intValidator{v: fun}
+	validatorMap[Int] = append(validatorMap[Int], v)
 }
 
-func NewAdvValidation(key reflect.Kind, fun AdvancedValidationFunc) {
-	internalValidator := newInternalValidatorAdvFun(fun)
-	validatorMap[key] = append(validatorMap[key], internalValidator)
+func NewInt64Validator(fun FuncValidateInt64) {
+	v := &int64Validator{v: fun}
+	validatorMap[Int64] = append(validatorMap[Int64], v)
 }
 
-func newInternalValidatorBasicFun(fun ValidateInt) internalValidator {
-	return &internalValidatorImpl{
-		basicValidator: fun,
-		basic:          true,
+func NewFloat32Validator(fun FuncValidateFloat32) {
+	v := &float32Validator{v: fun}
+	validatorMap[Float32] = append(validatorMap[Float32], v)
+}
+
+func NewFloat64Validator(fun FuncValidateFloat64) {
+	v := &float64Validator{v: fun}
+	validatorMap[Float64] = append(validatorMap[Float64], v)
+}
+
+func NewStringValidator(fun FuncValidateString) {
+	v := &stringValidator{v: fun}
+	validatorMap[String] = append(validatorMap[String], v)
+}
+
+func NewBoolValidator(fun FuncValidateBool) {
+	v := &boolValidator{v: fun}
+	validatorMap[Bool] = append(validatorMap[Bool], v)
+}
+
+func NewTimeValidator(fun FuncValidateTime) {
+	v := &timeValidator{v: fun}
+	validatorMap[Time] = append(validatorMap[Time], v)
+}
+
+func NewInterfaceValidator(kind Kind, fun FuncValidateInterface) {
+	v := &interfaceValidator{v: fun}
+	validatorMap[kind] = append(validatorMap[kind], v)
+}
+
+// NewCustomValidator users can define custom validators if they want to. It is not necessary to do that,
+// you can easily use interface returned methods etc. But as you wish you can use this api to define customized validators.
+func NewCustomValidator(kind Kind, v Validator) {
+	isExist := false
+	for _, val := range kindMap {
+		if val == kind {
+			isExist = true
+		}
 	}
-}
 
-func newInternalValidatorAdvFun(fun AdvancedValidationFunc) internalValidator {
-	return &internalValidatorImpl{
-		advancedValidator: fun,
-		basic:             false,
+	if !isExist {
+		log.Println("kind is not exist, please add the custom kind first")
+		return
 	}
+
+	// if there is no kind exist yet, we need to create this kind for every map
+	// we should get its string representation also.
+	validatorMap[kind] = append(validatorMap[kind], v)
 }
 
+func NewValidator(key Kind, fun FuncValidateGlob) {
+	v := &globalValidator{v: fun}
+	validatorMap[key] = append(validatorMap[key], v)
+}
+
+func (iv *intValidator) Validate(field reflect.StructField, value reflect.Value) error {
+	return iv.v(int(value.Int()), field.Tag)
+}
+
+func (iv *int64Validator) Validate(field reflect.StructField, value reflect.Value) error {
+	return iv.v(value.Int(), field.Tag)
+}
+
+func (iv *float32Validator) Validate(field reflect.StructField, value reflect.Value) error {
+	return iv.v(float32(value.Float()), field.Tag)
+}
+
+func (iv *float64Validator) Validate(field reflect.StructField, value reflect.Value) error {
+	return iv.v(value.Float(), field.Tag)
+}
+
+func (iv *stringValidator) Validate(field reflect.StructField, value reflect.Value) error {
+	return iv.v(value.String(), field.Tag)
+}
+
+func (iv *globalValidator) Validate(field reflect.StructField, value reflect.Value) error {
+	return iv.v(field, value)
+}
+
+func (iv *boolValidator) Validate(field reflect.StructField, value reflect.Value) error {
+	return iv.v(value.Bool(), field.Tag)
+}
+
+func (iv *timeValidator) Validate(field reflect.StructField, value reflect.Value) error {
+	if field.Type.String() == "*time.Time" { // pointer time conversion
+		timeVal := value.Interface().(*time.Time)
+		return iv.v(*timeVal, field.Tag)
+	}
+
+	timeVal := value.Interface().(time.Time)
+	return iv.v(timeVal, field.Tag)
+}
+
+func (iv *interfaceValidator) Validate(field reflect.StructField, value reflect.Value) error {
+	return iv.v(value.Interface(), field.Tag)
+}
+
+// ValidateWithBytes this function gives you the chance to keep your code a little bit cleaner.
+// It unmarshals the json inside so you should give the interface address and the bytes it will do the validation
+// after filling the object.
 func ValidateWithBytes(bytes []byte, inp interface{}) error {
 	err := json.Unmarshal(bytes, inp)
 
@@ -159,12 +320,6 @@ But if the developer wants to define a new custom tag, he/she can easily do that
 
 */
 func Validate(inp interface{}) error {
-	log.Printf("inp: %+v", inp)
-	// Structs can be nil so check if it is nil or not...
-	// And also structs can have some special validations also so maybe
-	// we can close this nil check,.... but it is important because if the
-	// struct is nil, that means we can't access its fields, so I need to check
-	// it immediately if I have to.
 	if inp == nil {
 		return nil
 	}
@@ -177,8 +332,10 @@ func Validate(inp interface{}) error {
 	for i := 0; i < numFields; i++ {
 		field := structType.Elem().Field(i)
 		kind := field.Type.Kind()
+		// we use kind name without pointer prefix so remove it
+		kindName := strings.TrimPrefix(field.Type.String(), "*") // time.Time, *time.Time
 
-		if validatorFunList, ok := validatorMap[kind]; ok {
+		if validatorFunList, ok := validatorMap[Kind(kind)]; ok {
 			err := executeValidationRules(validatorFunList, field, reflectValue)
 
 			if err != nil {
@@ -186,8 +343,21 @@ func Validate(inp interface{}) error {
 			}
 		}
 
-		// If current type is a struct recursively validate its fields
-		if kind == reflect.Struct {
+		// if kindName is a struct, then we should check for the kindName
+		// because if there are any special validators used for this struct type
+		// we should go for it otherwise we will recursively check for its fields...
+		if k, ok := kindMap[kindName]; ok && kind == reflect.Struct {
+			// There is a special kind and we need to find its validators
+			// After we execute struct process if also it is exist
+			if specialValidators, ok := validatorMap[k]; ok {
+				err := executeValidationRules(specialValidators, field, reflectValue)
+
+				if err != nil {
+					return err
+				}
+			}
+		} else if kind == reflect.Struct {
+			// If current type is a struct then recursively Validate its fields
 			err := Validate(reflectValue.FieldByName(field.Name).Interface())
 
 			if err != nil {
@@ -199,30 +369,12 @@ func Validate(inp interface{}) error {
 	return nil
 }
 
-func executeValidationRules(ruleFuncList []internalValidator, field reflect.StructField, value reflect.Value) error {
+func executeValidationRules(ruleFuncList []Validator, field reflect.StructField, value reflect.Value) error {
 	for _, validator := range ruleFuncList {
-		var err error
-		if validator.isBasic() {
-			err = validator.basicValidate(field.Name, int(value.FieldByName(field.Name).Int()), field.Tag)
-		} else {
-			err = validator.advValidate(field, value.FieldByName(field.Name))
-		}
-
-		if err != nil {
+		if err := validator.Validate(field, value.FieldByName(field.Name)); err != nil {
 			return err
 		}
 	}
+
 	return nil
-}
-
-func (iv *internalValidatorImpl) basicValidate(field string, value int, tags reflect.StructTag) error {
-	return iv.basicValidator(field, value, tags)
-}
-
-func (iv *internalValidatorImpl) advValidate(field reflect.StructField, value reflect.Value) error {
-	return iv.advancedValidator(field, value)
-}
-
-func (iv *internalValidatorImpl) isBasic() bool {
-	return iv.basic
 }

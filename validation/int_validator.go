@@ -15,7 +15,7 @@ const (
 )
 
 var (
-	between = func(field string, value int, tags reflect.StructTag) error {
+	between = func(value int, tags reflect.StructTag) error {
 		if betweenStr, ok := tags.Lookup("between"); ok {
 			minMaxSplitted := strings.Split(betweenStr, "-")
 			if len(minMaxSplitted) != 2 {
