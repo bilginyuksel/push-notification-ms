@@ -4,9 +4,9 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/bilginyuksel/gorify"
 	"github.com/bilginyuksel/push-notification/request"
 	"github.com/bilginyuksel/push-notification/response"
-	"github.com/bilginyuksel/push-notification/validation"
 	"github.com/gorilla/mux"
 )
 
@@ -38,7 +38,7 @@ func CreateApplication(w http.ResponseWriter, r *http.Request) {
 	b, _ := ioutil.ReadAll(r.Body)
 
 	req := &request.CreateAppRequest{}
-	err := validation.ValidateWithBytes(b, req)
+	err := gorify.ValidateWithBytes(b, req)
 
 	if err != nil {
 		writeJSON(w, IllegalArgumentException, 402)
